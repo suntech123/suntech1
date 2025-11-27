@@ -1,3 +1,5 @@
 wmic memorychip get devicelocator, manufacturer, partnumber
 
 
+Get-CimInstance Win32_PhysicalMemory | Select-Object DeviceLocator, Manufacturer, PartNumber
+
