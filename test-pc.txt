@@ -3,3 +3,19 @@ wmic memorychip get devicelocator, manufacturer, partnumber
 
 Get-CimInstance Win32_PhysicalMemory | Select-Object DeviceLocator, Manufacturer, PartNumber
 
+
+Get-CimInstance Win32_BIOS | Select-Object SerialNumber
+
+## copy and paste in powershell window
+
+
+$battery = Get-CimInstance -Namespace root/wmi -ClassName BatteryFullChargedCapacity
+$design = Get-CimInstance -Namespace root/wmi -ClassName BatteryStaticData
+$health = ($battery.FullChargedCapacity / $design.DesignedCapacity) * 100
+Write-Host "Battery Health: $([math]::Round($health, 2))%"
+
+
+## get SSD
+
+
+Get-PhysicalDisk | Select-Object FriendlyName, MediaType, @{N="Size(GB)";E={$_.Size/1GB}}
