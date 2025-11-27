@@ -1,0 +1,3 @@
+wmic memorychip get devicelocator, manufacturer, partnumber
+
+
