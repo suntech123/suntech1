@@ -56,3 +56,49 @@ for pdf_basename, intersection_list in final_dict.items():
 
 print("-------------------")
 print("Operation Complete.")
+
+
+##################
+
+import os
+import shutil
+
+SOURCE_FOLDER = '/Users/yourname/folder_A'
+DEST_FOLDER = '/Users/yourname/folder_B'
+
+os.makedirs(DEST_FOLDER, exist_ok=True)
+
+for pdf_key, intersection_list in final_dict.items():
+    
+    # 1. Check if list is non-empty
+    if intersection_list:
+        
+        # 2. Clean the key to get the raw name without extension
+        # (In case the key in dict already has .pdf or .PDF)
+        clean_name = pdf_key.replace('.pdf', '').replace('.PDF', '')
+        
+        # 3. Define the possible filenames to look for
+        # You can add '.Pdf' here if you have mixed case extensions
+        candidates = [f"{clean_name}.pdf", f"{clean_name}.PDF"]
+        
+        file_moved = False
+        
+        # 4. Loop through candidates and move the first one found
+        for filename in candidates:
+            source_path = os.path.join(SOURCE_FOLDER, filename)
+            dest_path = os.path.join(DEST_FOLDER, filename)
+            
+            if os.path.exists(source_path):
+                try:
+                    shutil.move(source_path, dest_path)
+                    print(f"✅ Moved: {filename}")
+                    file_moved = True
+                    break # Stop looking after finding one match
+                except Exception as e:
+                    print(f"❌ Error moving {filename}: {e}")
+        
+        if not file_moved:
+            print(f"⚠️  File not found (checked .pdf and .PDF): {clean_name}")
+
+print("-------------------")
+print("Operation Complete.")
