@@ -3,16 +3,35 @@ import hashlib
 from pathlib import Path
 from typing import Set, Dict, List
 
-def get_file_hash(file_path: Path, chunk_size: int = 8192) -> str:
+import hashlib
+import uuid
+from pathlib import Path
+
+def get_hash(file_path: Path | str) -> str:
     """
-    Generates SHA-256 hash. Reads in chunks to avoid loading 
-    large PDFs entirely into RAM.
+    Generates a deterministic UUID-like string from file content.
+    Reads in chunks to ensure memory efficiency with large files.
     """
-    hasher = hashlib.sha256()
-    with file_path.open('rb') as f:
-        while chunk := f.read(chunk_size):
+    # 1. Use MD5 to match your original logic (128-bit hash)
+    hasher = hashlib.md5()
+    
+    # 2. Open file as binary
+    with open(file_path, 'rb') as f:
+        # 3. Read in 4KB chunks using iter() - "The Pythonic Loop"
+        # This prevents crashing RAM on large files
+        for chunk in iter(lambda: f.read(4096), b""):
             hasher.update(chunk)
-    return hasher.hexdigest()
+            
+    # 4. The Magic Trick:
+    # MD5 is 128-bit. UUIDs are 128-bit. 
+    # Instead of manual string slicing, just let the UUID class format it.
+    return str(uuid.UUID(hex=hasher.hexdigest()))
+
+def get_uuid() -> str:
+    """
+    Generates a random standard UUID string.
+    """
+    return str(uuid.uuid4())
 
 def clean_pdf_file_names(
     pdf_dir: Path, 
