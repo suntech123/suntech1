@@ -30,3 +30,35 @@ def calculate_dynamic_tolerances(lines: list['VisualLine']) -> dict:
         'intersect': intersect_tol,
         'cluster': cluster_tol
     }
+
+
+
+
+#≠===================
+
+class PageProcessor:
+    def __init__(self, page: fitz.Page):
+        # ... existing init ...
+        self._tolerances = None
+
+    @property
+    def tolerances(self):
+        if self._tolerances is None:
+            # Calculate based on the lines we extracted
+            self._tolerances = calculate_dynamic_tolerances(self.lines)
+        return self._tolerances
+
+    def detect_grid_table(self) -> float:
+        # Get dynamic value
+        tol = self.tolerances['intersect'] 
+        
+        h_lines = [l for l in self.lines if l.orientation == 'H']
+        v_lines = [l for l in self.lines if l.orientation == 'V']
+
+        # ... (rest of logic) ...
+        
+        # Use dynamic 'tol' in your loop
+        has_x_overlap = (h.x0 - tol <= v.x0 <= h.x1 + tol)
+        has_y_overlap = (v.y0 - tol <= h.y0 <= v.y1 + tol)
+        
+        # ...
