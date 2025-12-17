@@ -1,0 +1,15 @@
+This is the final piece of the puzzle. You have the raw methods and the optimized data structures. Now, you need the Algorithm Orchestrator.
+
+To be efficient, we will not run every check on every page blindly. We will use a Waterfall Strategy:
+
+1. Fastest/Most Reliable Check: XML Tags (Explicit structure).
+
+2. Visual Check: Vector Grids (Lines/Intersections).
+
+3.Content Check: Semantic Anchors (Keywords + Alignment).
+
+4. Fallback: Images (Bitmaps).
+
+Here is the complete, step-by-step implementation.
+
+
