@@ -16,5 +16,45 @@ Here is the complete, step-by-step implementation.
 Step 1: Define the Master Container & Utilities
 
 
+We need a standard way to cluster coordinates (e.g., handling y=100.0 and y=100.5 as the same line) and a class to hold our processed data.
+
+Step 2: The Ingestion Layer
+
+We create a PageProcessor class. This ensures we only call PyMuPDF methods once and store the results in your optimized structures.
 
 
+Step 3: The Detection Strategies
+
+Now we write the specific logic for each detection type.
+
+Strategy A: Grid Detection (The Visual Check)
+Checks for intersections of Horizontal and Vertical lines.
+
+
+Strategy B: Semantic Detection (The Content Check)
+Checks for keywords ("Qty", "Price") and validates if they are visually aligned as a header row.
+
+
+Strategy C: Structure & Image Check (The Edge Cases)
+Checks XML tags and Image coverage.
+
+
+Strategy C: Structure & Image Check (The Edge Cases)
+Checks XML tags and Image coverage.
+
+Step 4: The Orchestrator (Main Loop)
+
+This combines everything into a final decision for the page.
+
+
+Why this code is optimized:
+
+Lazy Loading: It only calls get_text("words") or get_drawings() if the previous checks failed or required them. It doesn't parse everything upfront.
+Native Speed: It uses search_for (C++) before trying to process TextSpans (Python) for keywords.
+Data Classes: Uses your slot-based classes for minimal memory footprint.
+
+Coverage: It handles:
+Lined Tables (Grid Check)
+Borderless Tables (Semantic Check)
+Accessible Tables (XML Check)
+Scanned Tables (Image Check)
