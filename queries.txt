@@ -1,4 +1,44 @@
 
+
+
+AZU_SD.._EUZ..._DEV_DEV... (The Role)
+
+This represents the Active Role you are currently using.
+Significance: In Snowflake, you don't just "log in"; you assume a specific Role. This role determines what you are allowed to see and do.
+Naming Convention Breakdown:
+AZU: Likely indicates the cloud platform is Azure.
+SDRP / EUZDS: These appear to be internal codes for your specific project, department, or business unit.
+DEV: Indicates this is the Development environment (as opposed to Prod/Production).
+DEVELOPER: This is the access level. It likely grants you permission to read/write tables in the Dev database but perhaps restricts you from dropping production tables.
+
+
+2. EUZDS_DEV_PIMS_WH (X-Small) (The Warehouse)
+This represents the Virtual Warehouse (Compute Power) assigned to run your queries.
+Significance: While the Database holds your data, the Warehouse provides the CPU and Memory to actually execute the SQL. If this is not running, you cannot run queries.
+
+
+Naming Convention Breakdown:
+
+EUZDS_DEV_PIMS: The project or application this warehouse belongs to. "PIMS" is likely the specific system name (e.g., Product Information Management System).
+_WH: A standard suffix standing for Warehouse.
+(X-Small): This is the Size of the server cluster.
+X-Small is the smallest size (1 node).
+It costs 1 Credit per hour to run.
+Larger sizes (Small, Medium, Large, etc.) are faster but cost significantly more.
+Summary
+When you hit "Run" in that worksheet, Snowflake is effectively saying:
+"Using the permissions of the Dev Developer Role, wake up the X-Small PIMS Warehouse to compute this query."
+
+
+
+
+
+
+
+
+
+
+
 Step 2.
 
 Select * from EUIDS_DEV_PIMS_DB.PIMS_DEV.POLDIG_DOCUMENT_T where DOC_GLOBAL_DOC_ID = '';
