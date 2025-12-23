@@ -140,4 +140,24 @@ Key Logic & Optimizations
 4. Tolerance Tuning:
   2.0: Good for scanned documents or OCR layers where alignment is jittery.
   0.1: Good for "Digital Born" PDFs (Word -> PDF) where slight floating-point errors (100.0001 vs 100.0000) prevent strict equality checks.
+
+###########################################################################################################
+
+The Complete Pipeline
+Now you have the full "Vector Cleaning" stack. You should run them in this specific order:
+
+          # 1. Get Raw Data
+          raw = page.get_drawings()
+          
+          # 2. Remove Noise (Dust, hidden text, crop marks)
+          clean = get_clean_page_drawings(page, speck_threshold=2.0)
+          
+          # 3. Skeletonization (Convert thick bars -> single lines)
+          skeleton = skeletonize_fills_to_strokes(clean)
+          
+          # 4. Orthogonalization (Fix skew)
+          final_vectors = orthogonalize_lines(skeleton, skew_tolerance=2.0)
+          
+          # Now 'final_vectors' is ready for Table/Layout detection algorithms.
+
 '''
