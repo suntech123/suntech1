@@ -38,3 +38,23 @@ def render_page_for_detection(pdf_path, page_num):
 If you want a simple, reliable library that doesn't require a GPU, start here. It uses OpenCV and image processing heuristics (similar to your previous logic but much more robust) to detect borders and cells.
 Pros: Fast, runs on CPU, easy to use, supports OCR integration (Tesseract/Paddle/EasyOCR).
 Cons: Struggles with "borderless" tables or highly complex layouts.
+
+
+
+from img2table.document import Image
+from img2table.ocr import TesseractOCR
+
+# 1. Load Image
+img = Image(src="page_image.jpg")
+
+# 2. Instantiate OCR (Optional, helps to correct detection)
+ocr = TesseractOCR(n_threads=1, lang="eng")
+
+# 3. Extract Tables
+# borderless_tables=True helps find tables without lines
+tables = img.extract_tables(ocr=ocr, borderless_tables=True)
+
+for table in tables:
+    print(f"Table found at: {table.bbox}")
+    # You can even export directly to Excel
+    # img.to_xlsx("output.xlsx", ocr=ocr)
