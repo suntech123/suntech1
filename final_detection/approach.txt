@@ -1,0 +1,40 @@
+PDFium is a renderer, not a table detector.
+
+Here are the two ways you can use it for table detection:
+Approach 1: The "Visual" Pipeline (Recommended for Modern AI)
+This is the most popular use case for PDFium. You use it to render pages to images at lightning speed (because it's C++/Rust), and then
+pass those images to a Computer Vision model (like Microsoft's Table Transformer or YOLO) to find the tables.
+
+Why use PDFium here? It renders pages 10-50x faster than other Python tools.
+
+#######################################################################################################################
+
+import pypdfium2 as pdfium
+from PIL import Image
+
+def render_page_for_detection(pdf_path, page_num):
+    # 1. Load the PDF
+    pdf = pdfium.PdfDocument(pdf_path)
+    page = pdf[page_num]
+    
+    # 2. Render the page to a high-quality image (e.g., 300 DPI)
+    # scale=4 roughly equals 300 DPI (72 * 4 ≈ 288)
+    bitmap = page.render(scale=4, rotation=0)
+    
+    # 3. Convert to PIL Image for your AI model (YOLO, Table Transformer)
+    pil_image = bitmap.to_pil()
+    
+    return pil_image
+
+# --- How you would use this ---
+# img = render_page_for_detection("doc.pdf", 0)
+# tables = my_yolo_model.detect(img)
+
+#########################################################################################################################
+
+
+
+1. img2table (Best Lightweight/CPU Option)
+If you want a simple, reliable library that doesn't require a GPU, start here. It uses OpenCV and image processing heuristics (similar to your previous logic but much more robust) to detect borders and cells.
+Pros: Fast, runs on CPU, easy to use, supports OCR integration (Tesseract/Paddle/EasyOCR).
+Cons: Struggles with "borderless" tables or highly complex layouts.
