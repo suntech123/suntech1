@@ -1,0 +1,91 @@
+Here is the comprehensive documentation for the refactored Automated PDF Table Detection System.
+Automated PDF Table Detection System
+Version: 2.0 (Refactored for 2026 Standards)
+Date: January 2026
+1. Executive Summary
+This software automates the process of identifying which pages in a PDF document contain data tables. Unlike traditional text search tools, this system uses Computer Vision (CV). It "looks" at the PDF pages as if they were images to identify visual grid structures, lines, and row patterns.
+Key Features:
+Visual Detection: Can detect tables even if they are scanned images or lack digital text layers.
+Rule-Based Logic: Distinguishes between actual data tables and other design elements (like underlined headers or borders).
+Modular Design: Separates configuration from logic, making it easy to tune without coding.
+Edge Case Handling: specifically tuned for "Zebra striping" (colored rows), "List" tables (no vertical lines), and "Comparison" tables.
+2. System Requirements
+OS: Windows, Linux, or macOS.
+Python Version: Python 3.10 or higher (3.12+ recommended).
+Dependencies:
+pypdfium2: High-performance PDF rendering.
+opencv-python-headless: Computer vision image processing.
+numpy: Numerical matrix operations.
+pandas: Data export to CSV.
+Pillow: Image handling.
+Installation Command:
+code
+Bash
+pip install pypdfium2 opencv-python-headless numpy pandas Pillow
+3. How It Works (The "Layman" Explanation)
+Imagine a human scanning a document for tables. They look for specific visual cues. This software mimics that process in four steps:
+Take a Picture: It converts every PDF page into a high-resolution image.
+Find the Skeleton: It applies special filters to turn the page into a black-and-white "map," highlighting only vertical and horizontal lines.
+Clean the Map: It removes "noise" (like text characters that look like lines, or tiny specks).
+Group & Decide: It groups nearby lines together into "clusters." Then, it asks a series of questions (Rules) to decide if that cluster is a table:
+Does it have a grid shape?
+Does it look like a list with many rows?
+Does it look like a comparison chart?
+4. Configuration Guide
+The system uses a TableDetectionConfig object. You can adjust these settings to make the AI more sensitive or stricter without rewriting the code.
+4.1. Rendering & Preprocessing
+Parameter        Default        Description
+render_scale        4.0        Quality. Higher numbers = sharper image but slower speed. 4.0 is roughly 300 DPI.
+adaptive_block_size        15        Shadow Removal. Size of the area used to calculate local thresholding.
+adaptive_c        4        Sensitivity. Lower values detect fainter lines but increase noise/specks.
+4.2. Line Detection
+Parameter        Default        Description
+line_scale_factor        40        Line Length. Determines the minimum length a streak of pixels must have to be considered a "line." (Image Width / 40).
+min_line_density        0.50        Solidness. A line must be at least 50% filled with pixels. Prevents dashed lines or text from being detected as solid table lines.
+4.3. Business Logic (The "Rules")
+These parameters determine if a detected grid is actually a table.
+Parameter        Default        Layman Definition
+min_structure_lines        3        A table must have at least 3 horizontal lines to be considered.
+rule_row_dense_h        6        The "Zebra" Rule. If we see 6+ horizontal lines stacked closely, assume it's a table even if vertical lines are missing.
+rule_list_width_ratio        0.5        The "List" Rule. A list (no vertical lines) must take up at least 50% of the page width to be counted.
+5. Technical Specifications (The Algorithm)
+5.1. Class Structure
+The code is refactored into strict Object-Oriented patterns:
+TableDetectionConfig (Data Class): A frozen dataclass holding all magic numbers. This ensures configuration is immutable during runtime.
+TableDetector (Service Class): Pure functional logic. It takes an image input and returns TableStats. It holds no state about the PDF file itself.
+PDFProcessor (Orchestrator): Manages file I/O, error handling, and iteration logic.
+5.2. The Computer Vision Pipeline
+The _preprocess_image method uses a Hybrid Detection Strategy:
+Adaptive Thresholding: Used to detect standard black text/lines on white backgrounds.
+Sobel Operators (Derivatives):
+Sobel Y: Detects horizontal edges (useful for colored header blocks).
+Sobel X: Detects vertical edges.
+Bitwise OR: The results of Adaptive Threshold and Sobel are combined. This ensures that even if a table has faint gray lines (which Threshold might miss) or colored backgrounds (which Sobel catches), the system detects it.
+5.3. Line Validation Logic
+Raw CV detection is noisy. The _validate_lines method filters false positives using geometric properties:
+Aspect Ratio Check: A horizontal line must be significantly wider than it is tall (w/h > 5).
+Pixel Density Check: The bounding box of the line must contain actual pixels. This filters out "ghost" bounding boxes created by noise.
+5.4. Clustering & Heuristics
+The system does not just look for "grids." It applies specific heuristic rules:
+Standard Grid: High connectivity, multiple intersections (joints).
+Rule E (Comparison): Detects tables with only 1 vertical separator but multiple rows.
+Rule F (Row-Density): Detects "Zebra Striping" (colored rows) where vertical lines might be invisible or implied by color changes.
+Rule B (List): Detects lists that lack vertical lines entirely, provided they span a significant width of the page.
+6. Usage & Inputs/Outputs
+Input
+Source: A directory containing .pdf files (defined in main as ./data_files/cleaned_pdfs).
+Output
+Console: Real-time logging of which pages have tables.
+code
+Text
+INFO - Page 5: Table=True (H:14, V:4)
+INFO - Page 6: Table=False (H:1, V:0)
+CSV File: A structured report saved to ./data_files/output/pdf_output.csv.
+Column 1 (Filename): Name of the PDF.
+Column 2 (Page_Content): A list of page numbers like [1, 5, 12].
+7. Troubleshooting / Tuning
+Problem        Solution
+System misses faint tables        Decrease adaptive_c (e.g., to 2) in Config. This increases sensitivity.
+System thinks text paragraphs are tables        Increase min_line_density to 0.75 or increase line_scale_factor.
+System misses "Zebra" tables (colored rows)        Decrease rule_row_dense_h.
+Processing is too slow        Decrease render_scale to 3.0 or 2.0.
