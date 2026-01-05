@@ -165,3 +165,54 @@ def extract_table_structure_extended(image_path_or_array, save_path=None):
 
     if save_path: cv2.imwrite(save_path, final_output)
     return final_output, stats
+
+def get_pages_with_tables(pdf_path):
+    """
+    Scans a PDF document page by page to detect tables using grid analysis.
+
+    Args:
+        pdf_path (str): Path to the PDF file.
+
+    Returns:
+        list: List of 0-based page indices containing tables.
+    """
+    if not os.path.exists(pdf_path):
+        raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+
+    # Open PDF once just to get the page count
+    temp_doc = pdfium.PdfDocument(pdf_path)
+    num_pages = len(temp_doc)
+    temp_doc.close() # Close it, as render_page_for_detection opens its own instance
+
+    print(f"Analyzing {num_pages} pages in: {pdf_path} ...")
+
+    pages_with_tables = []
+
+    for page_num in range(num_pages):
+        try:
+            # 1. Render Page (Returns PIL Image)
+            pil_image = render_page_for_detection(pdf_path, page_num)
+
+            # 2. Convert PIL Image (RGB) to OpenCV Image (BGR/Grayscale Compatible)
+            # np.array(pil_image) returns RGB.
+            # We convert to BGR to be standard for OpenCV, though the grayscale
+            # conversion in the next function handles RGB inputs fine too.
+            open_cv_image = np.array(pil_image)
+            open_cv_image = open_cv_image[:, :, ::-1].copy() # RGB to BGR
+
+            # 3. Detect Tables
+            # We don't save the image to disk (save_path=None) to keep it fast
+            _, stats = extract_table_structure_extended(open_cv_image, save_path=None)
+
+            # 4. Check results
+            if stats['has_table']:
+                print(f"  [+] Table detected on Page {page_num + 1} (H-lines: {stats['h_lines']}, V-lines: {stats['v_lines']})")
+                pages_with_tables.append(page_num + 1)
+            else:
+                print(f"  [-] No table on Page {page_num + 1} (H-lines: {stats['h_lines']}, V-lines: {stats['v_lines']})")
+
+        except Exception as e:
+            print(f"  [!] Error processing page {page_num + 1}: {e}")
+            continue
+
+    return pages_with_tables
