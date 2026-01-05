@@ -760,13 +760,7 @@ def main():
     except Exception as e:
         logging.error(f"Failed to save CSV: {e}")
 
-if __name__ == "__main__":
-    main()
-Model
-ThinkingThoughts
-Expand to view model thoughts
 
-chevron_right
 Here is the comprehensive documentation for the refactored Automated PDF Table Detection System.
 Automated PDF Table Detection System
 Version: 2.0 (Refactored for 2026 Standards)
