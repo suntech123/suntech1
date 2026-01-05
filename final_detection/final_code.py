@@ -216,3 +216,38 @@ def get_pages_with_tables(pdf_path):
             continue
 
     return pages_with_tables
+
+# --- EXECUTION BLOCK ---
+if __name__ == "__main__":
+    # Replace with your actual PDF file path
+    #input_pdf = r"CASE NEW HOLLAND INDUSTRIAL INC_1be54d5c-eeb7-4493...18284f823793.pdf" #[1, 14, 15, 16
+    #input_pdf = r"KELLOGG BROWN & ROOT LLC_452bda53-5eeb-4942-ab8b...efe6.pdf"
+    #input_pdf = r"ERIE_2432a1c2-793d-49b3-99c3-cd91e58d84bf.pdf"
+    pdf_cleaned_dir = Path("./data_files/cleaned_pdfs")
+    results_dir = Path("./data_files/output")
+
+    pdf_data = {}               # Initialize empty dictionary
+
+    for input_pdf in sorted(glob.glob(f'{pdf_cleaned_dir}/*.pdf') + glob.glob(f'{pdf_cleaned_dir}/*.PDF')):
+        # Run the detection
+        try:
+            detected_pages = get_pages_with_tables(input_pdf)
+
+            print("\n" + "="*40)
+            print(f"FINAL RESULT: List of pages having tables: {detected_pages}")
+            print("="*40)
+            name = Path(input_pdf).stem.strip()
+            pdf_data[name] = detected_pages
+
+        except Exception as e:
+            print(f"Execution failed: {e}")
+
+    # 4. Create Pandas DataFrame
+    # We convert the dict items to a list of tuples to keep the structure clean
+    df = pd.DataFrame(list(pdf_data.items()), columns=['Filename', 'Page_Content'])
+
+    # 5. Write to CSV
+    result_path = f'{results_dir}/pdf_output.csv'
+    df.to_csv(result_path, index=False)
+
+    print("CSV created successfully!")
