@@ -1,0 +1,55 @@
+Based on the list in the image, these are the methods belonging to the **`PdfPage`** object in `pypdfium2`.
+
+Here is an explanation of the most commonly used functions, grouped by their purpose:
+
+### 1. Visualization (The most important one)
+*   **`render()`**
+    *   **What it does:** This is the core function of PDFium. It converts the vector PDF page into a **Bitmap (image)**.
+    *   **Why use it:** To create thumbnails, display the PDF in a viewer app, or convert a PDF page to a JPG/PNG.
+    *   **Note:** You can pass arguments like `scale` (to zoom in/out) or `rotation` to this function.
+
+### 2. Text Handling
+*   **`get_textpage()`**
+    *   **What it does:** Loads the text structure of the page.
+    *   **Why use it:** You **must** call this before you can do any text searching or extraction. It prepares the page for text analysis.
+
+### 3. Dimensions & The "Page Boxes"
+PDFs are complex; they don't just have one "size." They have several invisible boundaries defined by these functions:
+
+*   **`get_width()` / `get_height()`**
+    *   **What they do:** Return the dimensions of the page in points (1/72 inch).
+*   **`get_size()`**
+    *   **What it does:** Returns both width and height as a tuple.
+*   **`get_mediabox()`**
+    *   **What it does:** Returns the "Media Box" coordinates.
+    *   **Meaning:** This is the **physical paper size** (e.g., A4, Letter). It is the largest boundary.
+*   **`get_cropbox()`**
+    *   **What it does:** Returns the "Crop Box" coordinates.
+    *   **Meaning:** This is the **visible area**. If a PDF is cropped, the `mediabox` is still the full size, but the PDF viewer only shows you what is inside the `cropbox`.
+*   **`get_artbox` / `get_bleedbox` / `get_trimbox`**
+    *   **Meaning:** These are for professional printing (defining where to cut the paper, where the ink bleeds off the edge, etc.). You usually ignore these for standard web/screen viewing.
+
+*   **`set_mediabox` / `set_cropbox` / etc.**
+    *   **What they do:** Allow you to change these boundaries (e.g., cropping a page programmatically).
+
+### 4. Page Manipulation
+*   **`get_rotation()` / `set_rotation()`**
+    *   **What they do:** Get or set the rotation of the page (0, 90, 180, 270 degrees).
+    *   **Why use it:** If a scanned document is sideways, you use `set_rotation(90)` to fix it.
+*   **`flatten()`**
+    *   **What it does:** Merges annotations and form fields into the page content.
+    *   **Why use it:** If you fill out a form and want to make it "permanent" (so the user can't change the text anymore), you flatten it.
+*   **`gen_content()`**
+    *   **What it does:** Regenerates the page content stream.
+    *   **Why use it:** If you add or remove objects (images/text) using the functions below, you often need to call this to "bake" the changes into the file structure before saving.
+
+### 5. Object Editing (Advanced)
+*   **`get_objects()`**
+    *   **What it does:** Returns a list of individual items on the page (images, text blocks, paths).
+*   **`insert_obj()` / `remove_obj()`**
+    *   **What they do:** Allow you to add new elements or delete specific existing elements from the page.
+
+### 6. Cleanup
+*   **`close()`**
+    *   **What it does:** Destroys the page object and frees memory.
+    *   **Why use it:** `pypdfium2` handles memory manually in C++. If you are looping through thousands of pages, calling `close()` ensures your RAM doesn't fill up.
