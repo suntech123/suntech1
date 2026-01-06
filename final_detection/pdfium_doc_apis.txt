@@ -1,0 +1,123 @@
+Playground
+8,350 tokens
+
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+The METADATA_KEYS property of the PdfDocument object in the pypdfium2 library (the modern, maintained successor to pypdfium) is a tuple of strings that defines the standard keys used to extract metadata from the PDF's Information Dictionary.[1][2]
+The keys contained in this tuple are:
+Title: The title of the document.
+Author: The name of the person who created the document.
+Subject: The subject of the document.
+Keywords: Keywords associated with the document.[1][2][3]
+Creator: The name of the application (e.g., Microsoft Word) that created the original document from which the PDF was converted.[1][2]
+Producer: The name of the application (e.g., Adobe Acrobat Distiller) that converted the original document into a PDF.[1][2]
+CreationDate: The date and time the document was created.
+ModDate: The date and time the document was most recently modified.
+Trapped: A name indicating whether the document has been modified to include trapping information (often used in professional printing).[1][2]
+How to Use It
+You typically iterate over these keys to extract the available metadata from a document.[1][2] Here is an example using pypdfium2:
+code
+Python
+import pypdfium2 as pdfium
+
+# Open the PDF document
+pdf = pdfium.PdfDocument("your_document.pdf")
+
+# Iterate over the standard metadata keys
+for key in pdf.METADATA_KEYS:
+    value = pdf.get_metadata_value(key)
+    if value:
+        print(f"{key}: {value}")
+[1][2]
+Note: If you are using the older, unmaintained pypdfium library, the API might differ slightly, but pypdfium2 is the recommended library for working with PDFium in Python.[1][2]
+Sources
+help
+langchain.com
+readthedocs.io
+github.com
+pypi.org
+pypi.org
+stackoverflow.com
+github.com
+Google Search Suggestions
+Display of Search Suggestions is required when using Grounding with Google Search. Learn more
+Google logo
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Model
+ThinkingThoughts
+Expand to view model thoughts
+
+chevron_right
+Based on the list in the image, these are the methods belonging to the PdfDocument object in pypdfium2.
+Here are the most commonly used functions from that list, grouped by what you would typically use them for:
+
+
+1. Accessing Pages & Content
+These are the functions you use immediately after opening a file to get to the actual content.
+get_page(index)
+What it does: This is the most important function. It fetches a specific page object so you can render it or extract text.
+Usage: page = pdf.get_page(0) (Gets the first page).
+get_toc()
+What it does: Extracts the "Table of Contents" (also called Bookmarks or Outlines). It returns a structure showing the chapter titles and where they link to.
+Usage: creating a navigation sidebar for a viewer.
+get_page_size(index)
+What it does: Quickly tells you the width and height of a page without needing to fully load the page object first.
+
+
+2. Modifying the PDF (Merging & Splitting)
+If you want to change the structure of the PDF file, these are your go-to tools.
+import_pages(pdf, page_indices)
+What it does: Copies pages from another PDF document into the current one. This is the primary function used for merging PDFs.
+Usage: pdf_a.import_pages(pdf_b, [0, 1, 2]) (Copy first 3 pages of B into A).
+del_page(index)
+What it does: Deletes a specific page from the document.
+new_page(width, height)
+What it does: Inserts a completely empty, white page into the document.
+
+
+3. Metadata (Information)
+These functions help you find out "who, what, and when" about the file.
+get_metadata_value(key)
+What it does: retrieves a specific piece of info, such as "Author" or "Title."
+Usage: pdf.get_metadata_value("Author")
+get_metadata_dict()
+What it does: Returns all available metadata (Title, Author, Creator, etc.) at once as a Python dictionary, saving you from asking for them one by one.
+get_version()
+What it does: Returns the PDF version (e.g., 1.4, 1.7). This is useful to know if a file uses newer features that older readers might not support.
+
+
+4. Saving & Closing
+save(dest)
+What it does: Writes your changes to a file. If you imported or deleted pages, nothing actually changes on your hard drive until you call this.
+Usage: pdf.save("final_document.pdf")
+close()
+What it does: Frees up the memory used by the PDF. This is important in scripts that process thousands of files to prevent your computer from running out of RAM.
+Note on Forms (Advanced)
+init_forms() is also visible. You only need this if you plan to read or fill out interactive PDF forms (checkboxes, text fields). If you just want to read standard text/images, you can ignore it.
