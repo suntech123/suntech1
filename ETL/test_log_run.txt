@@ -1,0 +1,68 @@
+import re
+import os
+import csv
+
+def generate_csv_from_log(log_text, output_filename="table_report.csv"):
+    # 1. Parse the Filename
+    filename_match = re.search(r"Analyzing \d+ pages in: (.+\.pdf)", log_text)
+    
+    clean_filename = "Unknown_File"
+    if filename_match:
+        full_path = filename_match.group(1)
+        clean_filename = os.path.splitext(os.path.basename(full_path))[0]
+
+    print(f"Target Filename: {clean_filename}")
+
+    # 2. Parse Table Detections
+    # Regex: [+] Table detected on Page X (H-lines: Y, V-lines: Z)
+    table_pattern = r"\[\+\] Table detected on Page (\d+) \(H-lines: (\d+), V-lines: (\d+)\)"
+    matches = re.findall(table_pattern, log_text)
+
+    # 3. Filter Data
+    csv_rows = []
+    count = 0
+
+    for match in matches:
+        page_num = int(match[0])
+        h_lines = int(match[1])
+        v_lines = int(match[2])
+
+        # APPLY LOGIC: H-lines >= 2 AND V-lines <= 3
+        if h_lines >= 2 and v_lines <= 3:
+            csv_rows.append([clean_filename, page_num, h_lines, v_lines])
+            count += 1
+
+    # 4. Write to CSV
+    if csv_rows:
+        try:
+            with open(output_filename, mode='w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow(['Filename', 'Page No', 'H-lines', 'V-lines'])
+                writer.writerows(csv_rows)
+            print(f"Success! Wrote {count} rows to '{output_filename}'")
+        except Exception as e:
+            print(f"Error writing CSV: {e}")
+    else:
+        print("No tables matched the criteria (H>=2, V<=3).")
+
+# ==========================================
+# MAIN EXECUTION
+# ==========================================
+if __name__ == "__main__":
+    # CHANGE THIS to the name of your log file
+    input_log_file = "output_run.txt" 
+
+    try:
+        # 'r' means read mode
+        # encoding='utf-8' is standard, but use 'latin-1' if you get decode errors
+        with open(input_log_file, 'r', encoding='utf-8') as f:
+            file_content = f.read()
+            
+        # Call the function with the text we just read
+        generate_csv_from_log(file_content)
+
+    except FileNotFoundError:
+        print(f"Error: The file '{input_log_file}' was not found.")
+        print("Please make sure the text file is in the same folder as this script.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
