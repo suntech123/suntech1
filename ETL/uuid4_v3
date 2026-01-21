@@ -1,0 +1,17 @@
+SELECT 
+    t.description,
+    -- Extract the generic UUID pattern (matches what worked in your nuclear option)
+    REGEXP_SUBSTR(
+        t.description, 
+        '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+        1, 1, 'i'
+    ) as extracted_uuid
+FROM 
+    EU2D8_DEV_CAREVIEW_AI_DB.CAREVIEW_AI.POL_DIG_SILVER_CAT_PROD t
+WHERE 
+    -- Keep the filter so you only see rows that actually contain a UUID
+    REGEXP_LIKE(
+        t.description, 
+        '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', 
+        'i'
+    );
