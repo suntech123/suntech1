@@ -1,0 +1,24 @@
+SELECT 
+    t.description,
+    REGEXP_SUBSTR(
+        t.description, 
+        -- Matches DOC36 OR DOC360, ignores separators, grabs any 36-char UUID string
+        'DOC_DOC36[0-9]*_GLOBAL_DOC_ID.*?([0-9a-fA-F\\-]{36})', 
+        1, 1, 'ie', 1
+    ) as extracted_uuid
+FROM 
+    EU2D8_DEV_CAREVIEW_AI_DB.CAREVIEW_AI.POL_DIG_SILVER_CAT_PROD t
+WHERE 
+    REGEXP_LIKE(
+        t.description, 
+        -- The Relaxed Pattern
+        'DOC_DOC36[0-9]*_GLOBAL_DOC_ID.*?([0-9a-fA-F\\-]{36})',
+        'i'
+    );
+
+
+---------
+
+SELECT description 
+FROM EU2D8_DEV_CAREVIEW_AI_DB.CAREVIEW_AI.POL_DIG_SILVER_CAT_PROD 
+WHERE REGEXP_LIKE(description, '.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*', 'i');
