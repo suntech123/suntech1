@@ -1,0 +1,29 @@
+UPDATE EUZDS_DEV_CAREVIEW_AI_DB.CAREVIEW_AI.POLDIG_SILVER_CAT_PLAN_DOCUMENTS pdoc
+SET pdoc.global_doc_id = T1.extracted_uuid
+FROM (
+    -- This matches the T1 subquery logic from your screenshot
+    SELECT DISTINCT 
+        t.id AS PROJECT_ID,
+        t.NAME AS PRJ_NAME,
+        -- Extract the generic UUID pattern
+        REGEXP_SUBSTR(
+            t.description,
+            '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',
+            1, 1, 'i'
+        ) as extracted_uuid
+    FROM 
+        EUZDS_DEV_CAREVIEW_AI_DB.CAREVIEW_AI.POLDIG_SILVER_CAT_PROJECTS t
+    WHERE 
+        -- Keep the filter ensuring rows actually contain a UUID
+        REGEXP_LIKE(
+            t.description,
+            '.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}.*',
+            'i'
+        )
+) T1
+WHERE 
+    pdoc.project_id = T1.PROJECT_ID
+    -- The fuzzy name matching logic
+    AND pdoc.NAME ILIKE '%' || SPLIT(T1.PRJ_NAME, ' ')[0] || '%'
+    -- The specific type filter
+    AND LOWER(pdoc.type) = 'review';
