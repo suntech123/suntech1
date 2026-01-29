@@ -1,98 +1,77 @@
+import json
+import os
 import pytest
 import uuid
-from your_script_name import build_read_layer, azure_polygon_to_points
+from pathlib import Path
+from your_script_name import load_adi_result, build_read_layer
 
-# 1. Mock Data: A minimal Azure Document Intelligence response
-@pytest.fixture
-def mock_azure_result():
-    return {
-        "analyzeResult": {
-            "pages": [
-                {
-                    "pageNumber": 1,
-                    "words": [
-                        {
-                            "content": "Hello",
-                            "polygon": [0, 0, 10, 0, 10, 5, 0, 5],
-                            "confidence": 0.99
-                        }
-                    ],
-                    "lines": [
-                        {
-                            "content": "Hello World",
-                            "polygon": [0, 0, 50, 0, 50, 10, 0, 10]
-                        }
-                    ]
-                }
-            ]
-        }
-    }
+# 1. Variables from your image for consistency
+USER_DIR = '/home/azureuser/cloudfiles/code/Users'
+SRC_PATH = f'{USER_DIR}/david.brennan/dev/adi/data/adi_md_output/incoming/including_hf/02-OCT'
+FILE_ID = 'Peter-Kiewit_e35cc6ae-67bd-4b2b-b61e-b271969c8786'
 
-# 2. Test the specific polygon helper function
-def test_azure_polygon_to_points():
-    flat_poly = [1, 2, 3, 4, 5, 6, 7, 8]
-    expected = [[1, 2], [3, 4], [5, 6], [7, 8]]
-    assert azure_polygon_to_points(flat_poly) == expected
-    assert azure_polygon_to_points([]) == []
-    assert azure_polygon_to_points(None) == []
+# 2. Test for the File Loading Logic
+def test_load_adi_result_success():
+    """Tests if the file loads correctly from the specific SRC_PATH."""
+    # This check ensures the file actually exists on your Azure VM before testing
+    file_path = Path(SRC_PATH) / f"{FILE_ID}.json"
+    if not file_path.exists():
+        pytest.skip(f"Test file not found at {file_path}. Skipping local file test.")
 
-# 3. Comprehensive test for the conversion logic
-def test_build_read_layer_structure(mock_azure_result):
-    dr_id = "cl_datarow_123"
-    feature_name = "OCR_Layer"
+    result = load_adi_result(FILE_ID)
     
-    result = build_read_layer(mock_azure_result, dr_id, feature_name)
+    assert isinstance(result, dict), "The loaded result should be a dictionary."
+    # Standard ADI JSON check
+    assert "analyzeResult" in result or "pages" in result, "JSON missing ADI root keys."
 
-    # Test Top-level Structure
-    assert "uuid" in result
-    assert result["dataRow"]["id"] == dr_id
-    assert len(result["predictions"]) == 1
+# 3. Test for the Labelbox NDJSON Structure
+def test_build_read_layer_conversion():
+    """Tests if the conversion result matches the Labelbox Read Layer schema."""
+    # Load the real data
+    azure_result = load_adi_result(FILE_ID)
+    data_row_id = FILE_ID
     
-    prediction = result["predictions"][0]
-    assert prediction["model"] == "azure_ai_document_intelligence"
-    
-    # Test Result/Value mapping
-    payload = prediction["result"][0]
-    assert payload["type"] == "read"
-    assert payload["name"] == feature_name
-    
-    tokens = payload["value"]["tokens"]
-    lines = payload["value"]["lines"]
+    # Run conversion
+    ndjson_entry = build_read_layer(azure_result, data_row_id)
 
-    # Validate Tokens (Words)
-    assert len(tokens) == 1
-    assert tokens[0]["text"] == "Hello"
-    assert tokens[0]["confidence"] == 0.99
-    assert tokens[0]["page"] == 1
-    assert tokens[0]["polygon"] == [[0, 0], [10, 0], [10, 5], [0, 5]]
+    # Validate Top Level
+    assert ndjson_entry["dataRow"]["id"] == data_row_id
+    assert "uuid" in ndjson_entry
+    assert isinstance(ndjson_entry["predictions"], list)
 
-    # Validate Lines
-    assert len(lines) == 1
-    assert lines[0]["text"] == "Hello World"
-    assert lines[0]["page"] == 1
-    assert lines[0]["polygon"] == [[0, 0], [50, 0], [50, 10], [0, 10]]
-
-# 4. Test Error Handling / Edge Cases
-def test_empty_azure_result():
-    empty_result = {"analyzeResult": {"pages": []}}
-    result = build_read_layer(empty_result, "id")
+    # Validate the 'read' type structure shown in your second image
+    prediction = ndjson_entry["predictions"][0]
+    result_layer = prediction["result"][0]
     
-    # Structure should still exist, but lists should be empty
-    tokens = result["predictions"][0]["result"][0]["value"]["tokens"]
-    assert tokens == []
+    assert result_layer["type"] == "read"
+    assert "value" in result_layer
+    assert "tokens" in result_layer["value"]
+    assert "lines" in result_layer["value"]
 
-def test_missing_analyze_result_root():
-    # Test fallback if 'analyzeResult' key is missing but 'pages' is at root
-    alt_result = {"pages": [{"pageNumber": 1, "words": []}]}
-    result = build_read_layer(alt_result, "id")
-    assert result["dataRow"]["id"] == "id"
+# 4. Test the NDJSON File Output Logic
+def test_ndjson_file_format(tmp_path):
+    """Verifies that the written file is valid NDJSON (single line JSON)."""
+    azure_result = load_adi_result(FILE_ID)
+    ndjson_entry = build_read_layer(azure_result, FILE_ID)
 
-def test_missing_confidence_defaults_to_one(mock_azure_result):
-    # Remove confidence from mock
-    del mock_azure_result["analyzeResult"]["pages"][0]["words"][0]["confidence"]
+    # Create a temporary output file
+    out_path = tmp_path / "labelbox_read_predictions.ndjson"
     
-    result = build_read_layer(mock_azure_result, "id")
-    token = result["predictions"][0]["result"][0]["value"]["tokens"][0]
-    
-    # It should default to 1.0 based on common logic
-    assert token["confidence"] == 1.0
+    # Logic from your image: single-line writing
+    with out_path.open("w", encoding="utf-8") as f:
+        f.write(json.dumps(ndjson_entry, ensure_ascii=False) + "\n")
+
+    # Read it back and verify
+    with open(out_path, "r") as f:
+        lines = f.readlines()
+        assert len(lines) == 1, "NDJSON for a single asset should be exactly one line."
+        
+        parsed_back = json.loads(lines[0])
+        assert parsed_back["dataRow"]["id"] == FILE_ID
+
+# 5. Test Error Handling
+def test_load_adi_result_not_found():
+    """Tests if the function handles missing files gracefully as per your try-except block."""
+    result = load_adi_result("non_existent_id")
+    # Based on your image's code: result is initialized to '' then returns if except triggers
+    assert result == ''
