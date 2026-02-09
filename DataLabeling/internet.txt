@@ -1,0 +1,20 @@
+Based on the documents provided, here is the information extracted for each statement.
+The "Total (i)" refers to the Connectivity Services total listed on the first page of each summary statement.
+
+
+
+Statement No	Statement Date	Statement Date (mm/dd/yyyy)	Total (i)
+341515877022	01-Jan-2025	    01/01/2025	                1,038.40
+340516110827	01-Feb-2025	    02/01/2025	                1,038.40
+370015135942	01-Mar-2025	    03/01/2025	                1,038.40
+374016650200	02-Apr-2025	    04/02/2025	                1,038.40
+347517695867	01-May-2025	    05/01/2025	                1,038.40
+347017033743	02-Jun-2025	    06/02/2025	                1,038.40
+350018365928	02-Jul-2025	    07/02/2025	                1,038.40
+344018167019	02-Aug-2025	    08/02/2025	                1,038.40
+337018371327	02-Sep-2025	    09/02/2025	                1,038.40
+347018986564	02-Oct-2025	    10/02/2025	                1,038.40
+356520826252	02-Nov-2025	    11/02/2025	                1,038.40
+337521082971	02-Dec-2025	    12/02/2025	                1,038.40
+352521844647	02-Jan-2026	    01/02/2026	                1,038.40
+349523542306	02-Feb-2026	    02/02/2026	                1,038.40
