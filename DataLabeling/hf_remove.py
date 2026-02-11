@@ -302,3 +302,122 @@ class PDFHeaderFooterExtractor:
 # Usage Example
 # extractor = PDFHeaderFooterExtractor("doc.pdf")
 # headers, footers, coords = extractor.extract_headers_footers()
+
+############# Usage #############
+
+import fitz  # PyMuPDF
+from collections import Counter
+from pdf_extractor import PDFHeaderFooterExtractor # Assuming you saved the class here
+
+def process_pdf_header_footer(pdf_path, tables_y_coords):
+    """
+    Orchestrates the optimized extraction and applies business logic 
+    (thresholds, position checks) similar to the original script.
+    """
+    
+    # 1. Preliminary Check (Fast open just for page count/dimensions)
+    #    We use a context manager to ensure the file is closed immediately.
+    with fitz.open(pdf_path) as doc:
+        if len(doc) < 10:
+            print(f"Len of document is less than 10 pages ({len(doc)}), skipping.")
+            return
+        
+        # Capture page dimensions for the 10% / 15% logic later
+        first_page_rect = doc[0].rect
+        page_height = first_page_rect.height
+        page_width = first_page_rect.width
+
+    # 2. Extract Data (The Optimized Single Pass)
+    #    This replaces: extract_headers_footers_with_pymupdf, remove_empty_strings, 
+    #    and extract_footer_position.
+    extractor = PDFHeaderFooterExtractor(pdf_path, tables_y_coords)
+    
+    # Returns:
+    # raw_headers, raw_footers (List[str])
+    # page_map (Dict[int, List[List[float]]]) -> {0: [header_bbox, footer_bbox], ...}
+    headers, footers, page_map = extractor.extract_headers_footers()
+    
+    # Access the cleaned versions stored internally in the class
+    cleaned_headers = extractor.cleaned_headers
+    cleaned_footers = extractor.cleaned_footers
+
+    # 3. Calculate "Most Common Bounding" (Replaces most_repeating_value)
+    #    Instead of searching text again, we extract Y-coords from the page_map results.
+    
+    # Collect all valid header Y-bottoms (y1) and Footer Y-tops (y0)
+    # page_map structure: { page_index: [ [h_x0, h_y0, h_x1, h_y1], [f_x0, f_y0, f_x1, f_y1] ] }
+    header_y_coords = [
+        coords[0][3] for coords in page_map.values() if coords[0]
+    ]
+    footer_y_coords = [
+        coords[1][1] for coords in page_map.values() if coords[1]
+    ]
+
+    # Helper to find mode (most common value)
+    def get_mode(values, default=50):
+        if not values: return default
+        # Returns the most common value
+        return Counter(values).most_common(1)[0][0]
+
+    result_header_y = get_mode(header_y_coords, default=50)
+    result_footer_y = get_mode(footer_y_coords, default=page_height - 50)
+
+    # 4. Apply Position Logic (From your screenshot)
+    
+    # Logic: If header is in top 10% of page
+    if result_header_y > (0.10 * page_height):
+        result_header_y = 50 # Reset to default if too far down
+        
+    # Logic: If footer is in bottom 15% (checking from top)
+    # Note: Your screenshot had `result_footer > 0.15 * height` which seems to check 
+    # if it's *at least* 15% down. Usually footers are checked if they are *too high*.
+    # Assuming the logic meant: "If footer is surprisingly high up the page, reset it".
+    if result_footer_y < (page_height - (0.15 * page_height)):
+        # If footer is higher than the bottom 15%, it might be body text.
+        # However, strictly following your screenshot logic:
+        # if result_footer > 0.15 * doc[0].rect.y1: result_footer = 50 
+        # (This logic in screenshot seems suspicious for a footer, usually footers are large Y values)
+        pass 
+
+    # 5. Frequency Analysis (Thresholds)
+    
+    # Filter out empty strings for counting
+    valid_headers = [h for h in cleaned_headers if h]
+    valid_footers = [f for f in cleaned_footers if f]
+
+    header_counts = Counter(valid_headers)
+    footer_counts = Counter(valid_footers)
+
+    # Define Threshold (e.g., must appear on > 10% of pages or fixed number)
+    # Adjust '3' or calculation based on your preference
+    header_count_threshold = max(3, len(doc) * 0.1)
+    footer_count_threshold = max(3, len(doc) * 0.1)
+
+    # Boolean flags: Do we have a consistent header/footer?
+    has_header_margin = any(count > header_count_threshold for count in header_counts.values())
+    has_footer_margin = any(count > footer_count_threshold for count in footer_counts.values())
+
+    # 6. Extract Final Content
+    
+    final_header_content = ""
+    final_footer_content = ""
+
+    if has_header_margin:
+        # Get the most common text
+        final_header_content = header_counts.most_common(1)[0][0]
+        
+    if has_footer_margin:
+        final_footer_content = footer_counts.most_common(1)[0][0]
+
+    # Output Results
+    print(f"Header Y-Limit: {result_header_y}")
+    print(f"Footer Y-Start: {result_footer_y}")
+    print(f"Detected Header: '{final_header_content}'")
+    print(f"Detected Footer: '{final_footer_content}'")
+    
+    return {
+        "header_y": result_header_y,
+        "footer_y": result_footer_y,
+        "header_text": final_header_content,
+        "footer_text": final_footer_content
+    }
