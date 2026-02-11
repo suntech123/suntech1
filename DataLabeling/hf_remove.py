@@ -305,119 +305,208 @@ class PDFHeaderFooterExtractor:
 
 ############# Usage #############
 
+import os
 import fitz  # PyMuPDF
 from collections import Counter
-from pdf_extractor import PDFHeaderFooterExtractor # Assuming you saved the class here
+from typing import List, Dict, Any, Tuple
 
-def process_pdf_header_footer(pdf_path, tables_y_coords):
+# Assuming these are imported from your respective modules
+# from your_module import PDFHeaderFooterExtractor, get_adi_results
+# from your_module import PDFProcessor, time_it, logger
+
+class RedactionPDFProcessor(PDFProcessor):
     """
-    Orchestrates the optimized extraction and applies business logic 
-    (thresholds, position checks) similar to the original script.
+    PDF processor that removes headers and footers using redaction.
+    Optimized to use the single-pass PDFHeaderFooterExtractor.
     """
-    
-    # 1. Preliminary Check (Fast open just for page count/dimensions)
-    #    We use a context manager to ensure the file is closed immediately.
-    with fitz.open(pdf_path) as doc:
-        if len(doc) < 10:
-            print(f"Len of document is less than 10 pages ({len(doc)}), skipping.")
-            return
-        
-        # Capture page dimensions for the 10% / 15% logic later
-        first_page_rect = doc[0].rect
-        page_height = first_page_rect.height
-        page_width = first_page_rect.width
 
-    # 2. Extract Data (The Optimized Single Pass)
-    #    This replaces: extract_headers_footers_with_pymupdf, remove_empty_strings, 
-    #    and extract_footer_position.
-    extractor = PDFHeaderFooterExtractor(pdf_path, tables_y_coords)
-    
-    # Returns:
-    # raw_headers, raw_footers (List[str])
-    # page_map (Dict[int, List[List[float]]]) -> {0: [header_bbox, footer_bbox], ...}
-    headers, footers, page_map = extractor.extract_headers_footers()
-    
-    # Access the cleaned versions stored internally in the class
-    cleaned_headers = extractor.cleaned_headers
-    cleaned_footers = extractor.cleaned_footers
+    @time_it
+    def process(self, pdf_path: str, output_pdf_path: str):
+        """Process the PDF to remove headers and footers."""
+        try:
+            logger.info(f"Processing {pdf_path}")
+            
+            # 1. Environment & Configuration
+            header_count_threshold = int(os.environ.get("header_count_threshold", 5))
+            footer_count_threshold = int(os.environ.get("footer_count_threshold", 7))
+            
+            # 2. External Analysis (Azure ADI)
+            # Retaining original logic: extraction of page number/table coords via ADI
+            page_numbers_y_coords, tables_y_coords = get_adi_results(pdf_path)
 
-    # 3. Calculate "Most Common Bounding" (Replaces most_repeating_value)
-    #    Instead of searching text again, we extract Y-coords from the page_map results.
-    
-    # Collect all valid header Y-bottoms (y1) and Footer Y-tops (y0)
-    # page_map structure: { page_index: [ [h_x0, h_y0, h_x1, h_y1], [f_x0, f_y0, f_x1, f_y1] ] }
-    header_y_coords = [
-        coords[0][3] for coords in page_map.values() if coords[0]
-    ]
-    footer_y_coords = [
-        coords[1][1] for coords in page_map.values() if coords[1]
-    ]
+            # 3. Open PDF for processing
+            doc = fitz.open(pdf_path)
+            if len(doc) < 10:
+                print(f"Len of document is less than 10 pages ({len(doc)}), hence not processing")
+                doc.close()
+                return
 
-    # Helper to find mode (most common value)
-    def get_mode(values, default=50):
-        if not values: return default
-        # Returns the most common value
-        return Counter(values).most_common(1)[0][0]
+            # Capture geometry of the first page for defaults
+            # (Assuming consistent page size, otherwise move inside loop)
+            first_page_rect = doc[0].rect
+            page_height = first_page_rect.height
+            page_width = first_page_rect.width
 
-    result_header_y = get_mode(header_y_coords, default=50)
-    result_footer_y = get_mode(footer_y_coords, default=page_height - 50)
+            # 4. Extract Headers/Footers (Optimized Single Pass)
+            extractor = PDFHeaderFooterExtractor(pdf_path, tables_y_coords)
+            
+            # Returns raw lists and the coordinate map: {page_idx: [header_bbox, footer_bbox]}
+            headers, footers, page_map = extractor.extract_headers_footers()
+            
+            # Access cleaned data properties from the optimized class
+            cleaned_headers = extractor.cleaned_headers
+            cleaned_footers = extractor.cleaned_footers
+            
+            # 5. Frequency Analysis (Determine "Possible" headers/footers)
+            # Filter empty strings for stats
+            valid_headers = [h for h in cleaned_headers if h]
+            valid_footers = [f for f in cleaned_footers if f]
 
-    # 4. Apply Position Logic (From your screenshot)
-    
-    # Logic: If header is in top 10% of page
-    if result_header_y > (0.10 * page_height):
-        result_header_y = 50 # Reset to default if too far down
-        
-    # Logic: If footer is in bottom 15% (checking from top)
-    # Note: Your screenshot had `result_footer > 0.15 * height` which seems to check 
-    # if it's *at least* 15% down. Usually footers are checked if they are *too high*.
-    # Assuming the logic meant: "If footer is surprisingly high up the page, reset it".
-    if result_footer_y < (page_height - (0.15 * page_height)):
-        # If footer is higher than the bottom 15%, it might be body text.
-        # However, strictly following your screenshot logic:
-        # if result_footer > 0.15 * doc[0].rect.y1: result_footer = 50 
-        # (This logic in screenshot seems suspicious for a footer, usually footers are large Y values)
-        pass 
+            header_counts = Counter(valid_headers)
+            footer_counts = Counter(valid_footers)
 
-    # 5. Frequency Analysis (Thresholds)
-    
-    # Filter out empty strings for counting
-    valid_headers = [h for h in cleaned_headers if h]
-    valid_footers = [f for f in cleaned_footers if f]
+            # Identify text that appears frequently enough to be considered a generic header/footer
+            possible_headers = {
+                h for h, count in header_counts.items() 
+                if count > header_count_threshold
+            }
+            possible_footers = {
+                f for f, count in footer_counts.items() 
+                if count > footer_count_threshold
+            }
 
-    header_counts = Counter(valid_headers)
-    footer_counts = Counter(valid_footers)
+            has_header_margin = bool(possible_headers)
+            has_footer_margin = bool(possible_footers)
 
-    # Define Threshold (e.g., must appear on > 10% of pages or fixed number)
-    # Adjust '3' or calculation based on your preference
-    header_count_threshold = max(3, len(doc) * 0.1)
-    footer_count_threshold = max(3, len(doc) * 0.1)
+            # 6. Calculate Default Margins (Modes)
+            # We need a fallback Y-coordinate if a specific page doesn't have a specific text match
+            # but we still want to redact (e.g., based on the "average" header location).
+            
+            # Extract Y-bottom (y1) for headers and Y-top (y0) for footers from the page_map
+            # page_map structure: { page_idx: [ [h_x0, h_y0, h_x1, h_y1], ... ] }
+            
+            all_header_y1 = [
+                coords[0][3] for coords in page_map.values() 
+                if coords[0] # Ensure bbox exists
+            ]
+            all_footer_y0 = [
+                coords[1][1] for coords in page_map.values() 
+                if coords[1]
+            ]
 
-    # Boolean flags: Do we have a consistent header/footer?
-    has_header_margin = any(count > header_count_threshold for count in header_counts.values())
-    has_footer_margin = any(count > footer_count_threshold for count in footer_counts.values())
+            # Helper to find mode
+            def get_mode(values, default):
+                return Counter(values).most_common(1)[0][0] if values else default
 
-    # 6. Extract Final Content
-    
-    final_header_content = ""
-    final_footer_content = ""
+            result_header_y = get_mode(all_header_y1, default=50)
+            result_footer_y = get_mode(all_footer_y0, default=page_height - 50)
 
-    if has_header_margin:
-        # Get the most common text
-        final_header_content = header_counts.most_common(1)[0][0]
-        
-    if has_footer_margin:
-        final_footer_content = footer_counts.most_common(1)[0][0]
+            # 7. Apply Geometric Business Logic (Safety Checks)
+            # If calculated header is too low (>10% of page), reset to default
+            if result_header_y > (0.10 * page_height):
+                result_header_y = 50
+            
+            # If calculated footer is too high (logic from original: difference check)
+            # Original logic: if diff < 0.15 * footer_y. 
+            # Simplified: If footer starts higher than bottom 15%, reset it.
+            if result_footer_y < (page_height * 0.85):
+                 # This mimics: if result_footer > 0.15 * doc[0].rect.y1 (checking from top)
+                 # But usually footers are at the bottom. We keep a safe default.
+                 # Using the '50' logic from original if fails checks:
+                 # result_footer = 50 (from bottom? Or absolute?) 
+                 # The original code set `result_footer = 50` which implies a top-down coord system 
+                 # or a margin size. Assuming standard PDF coords (0 at top):
+                 result_footer_y = page_height - 50
 
-    # Output Results
-    print(f"Header Y-Limit: {result_header_y}")
-    print(f"Footer Y-Start: {result_footer_y}")
-    print(f"Detected Header: '{final_header_content}'")
-    print(f"Detected Footer: '{final_footer_content}'")
-    
-    return {
-        "header_y": result_header_y,
-        "footer_y": result_footer_y,
-        "header_text": final_header_content,
-        "footer_text": final_footer_content
-    }
+            # 8. Redaction Loop
+            for page_index in range(len(doc)):
+                page = doc[page_index]
+                p_height = page.rect.height
+                p_width = page.rect.width
+
+                # --- Header Redaction ---
+                header_rect = None
+                
+                # A. Specific Text Match
+                # If the text found on this page is in our list of "frequent headers"
+                current_h_text = cleaned_headers[page_index]
+                current_h_bbox = page_map.get(page_index, [None, None])[0]
+
+                if has_header_margin and (current_h_text in possible_headers) and current_h_bbox:
+                    # Use the specific bounding box found for this text
+                    # Original logic added dynamic offset based on file name lookup, 
+                    # we use the direct bbox + 2 (small buffer)
+                    header_rect = fitz.Rect(0, 0, p_width, current_h_bbox[3] + 2)
+                
+                # B. Page Number Logic (Fallback)
+                # If no specific header, but Azure detected a page number in the top region
+                elif (page_index + 1) in page_numbers_y_coords:
+                    p_num_y = page_numbers_y_coords[page_index + 1]
+                    if p_num_y < (0.10 * p_height):
+                        header_rect = fitz.Rect(0, 0, p_width, p_num_y + 2)
+
+                # C. Default Margin (Final Fallback)
+                elif has_header_margin:
+                    header_rect = fitz.Rect(0, 0, p_width, result_header_y)
+
+                if header_rect:
+                    page.add_redact_annot(header_rect, fill=(1, 1, 1))
+
+
+                # --- Footer Redaction ---
+                footer_rect = None
+                
+                current_f_text = cleaned_footers[page_index]
+                current_f_bbox = page_map.get(page_index, [None, None])[1]
+
+                # A. Specific Text Match
+                if has_footer_margin and (current_f_text in possible_footers) and current_f_bbox:
+                    # Redact from the top of the found text to the bottom of the page
+                    footer_rect = fitz.Rect(0, current_f_bbox[1] - 2, p_width, p_height)
+
+                # B. Page Number Logic (Fallback)
+                elif (page_index + 1) in page_numbers_y_coords:
+                    p_num_y = page_numbers_y_coords[page_index + 1]
+                    # Check if page number is in the bottom 15%
+                    if p_num_y > (0.85 * p_height):
+                        footer_rect = fitz.Rect(0, p_num_y - 2, p_width, p_height)
+
+                # C. Default Margin (Final Fallback)
+                elif has_footer_margin:
+                    # result_footer_y is the Y-coordinate where footer starts
+                    footer_rect = fitz.Rect(0, result_footer_y, p_width, p_height)
+
+                if footer_rect:
+                    page.add_redact_annot(footer_rect, fill=(1, 1, 1))
+
+                # Apply redactions immediately for this page (memory efficient)
+                page.apply_redactions()
+
+            # 9. Save and Close
+            doc.save(output_pdf_path, garbage=4, deflate=True)
+            doc.close()
+
+            # 10. Final Logging
+            # Get most common content for logs
+            final_h_content = header_counts.most_common(1)[0][0] if header_counts else ""
+            final_f_content = footer_counts.most_common(1)[0][0] if footer_counts else ""
+            
+            output_line = (
+                f"{os.path.basename(pdf_path)}; \n header_margin = {result_header_y}; "
+                f"top_margin = {result_header_y}; \n"
+                f"footer_margin = {result_footer_y}; bottom_margin = {result_footer_y}; \n"
+                f"header_content = {final_h_content};\n"
+                f"footer_content = {final_f_content}; \n"
+                f"number_of_pages = {len(headers)}\n"
+            )
+            print(f"output_line => {output_line}")
+
+        except FileNotFoundError:
+            logger.error(f"Error: The file {pdf_path} was not found.")
+        except PermissionError:
+            logger.error(f"Error: Not sufficient permission to access {pdf_path}.")
+        except IOError as e:
+            logger.error(f"An I/O error occurred: {e}")
+        except Exception as e:
+            logger.error(f"Error processing {pdf_path}: {e}")
+            raise
