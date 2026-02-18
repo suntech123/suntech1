@@ -91,3 +91,29 @@ def print_structured_report(data: List[Dict[int, List[List['PageElement']]]]):
                 # Calculate original row index
                 orig_idx = len(rows) - 3 + i + 1
                 print(f" Row {orig_idx} (y={y_pos:.1f}): {row_text}")
+
+#####
+
+# 1. Run the analysis
+results = analyze_document_structured("medical_policy.pdf")
+
+# 2. Print the verification report
+print_structured_report(results)
+
+# 3. Accessing data programmatically (Logic Layer)
+# Example: Get Page 1, Row 0 (The very top line)
+first_page_dict = results[0]      # { 1: [[row], [row]] }
+page_num_key = list(first_page_dict.keys())[0] # Gets '1'
+rows = first_page_dict[page_num_key]
+
+top_row = rows[0] # List of PageElements
+print(f"\nTop Left Item: {top_row[0].text}")
+
+# Example Logic: Loop through all pages to find a specific header
+for page_entry in results:
+    for p_num, rows in page_entry.items():
+        # Check the first row of every page
+        first_row_text = " ".join([e.text for e in rows[0]]).lower()
+        
+        if "confidential" in first_row_text:
+            print(f"⚠️ Alert: Page {p_num} starts with Confidential marker!")
