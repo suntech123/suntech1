@@ -55,3 +55,39 @@ def analyze_document_structured(pdf_path: str) -> List[Dict[int, List[List['Page
         })
 
     return structured_results
+
+######
+
+def print_structured_report(data: List[Dict[int, List[List['PageElement']]]]):
+    """
+    Parses the structured return value and prints it nicely to the console.
+    """
+    print(f"Total Pages Analyzed: {len(data)}")
+    
+    for page_entry in data:
+        # Extract key and value (there is only one key per dict in this structure)
+        for page_num, rows in page_entry.items():
+            print(f"\n{'='*40}")
+            print(f"📄 PAGE {page_num} (Total Rows: {len(rows)})")
+            print(f"{'='*40}")
+            
+            # Loop through the first 5 rows (Header Zone) and last 3 (Footer Zone)
+            # to keep the output clean
+            
+            print("--- [TOP 5 ROWS] ---")
+            for i, row in enumerate(rows[:5]):
+                # Join text of all elements in this row
+                row_text = " | ".join([e.text for e in row])
+                y_pos = row[0].rect.y0
+                print(f" Row {i+1} (y={y_pos:.1f}): {row_text}")
+
+            if len(rows) > 10:
+                print(f"... (Skipping {len(rows) - 8} body rows) ...")
+
+            print("--- [BOTTOM 3 ROWS] ---")
+            for i, row in enumerate(rows[-3:]):
+                row_text = " | ".join([e.text for e in row])
+                y_pos = row[0].rect.y0
+                # Calculate original row index
+                orig_idx = len(rows) - 3 + i + 1
+                print(f" Row {orig_idx} (y={y_pos:.1f}): {row_text}")
