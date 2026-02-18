@@ -46,3 +46,8 @@ for y_pos, line_items in groupby(all_elements, key=lambda e: round(e.rect.y0)):
 for line in lines[:3]:
     line_text = " ".join([elem.text for elem in line])
     print(f"Row at Y={line[0].rect.y0}: {line_text}")
+
+
+#####docwide full sort
+
+all_elements.sort(key=lambda e: (e.page_num, round(e.rect.y0), e.rect.x0))
