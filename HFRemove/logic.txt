@@ -1,0 +1,4 @@
+Extract Primary Text Alignment (The Body Column):
+For all lines that match the body_font_size, collect their x0 (left edge) and x1 (right edge) values.
+Calculate the Mode or 5th Percentile of x0. This represents the true, dynamic left margin of the body text.
+Calculate the Mode or 95th Percentile of x1. This is the true right margin.
