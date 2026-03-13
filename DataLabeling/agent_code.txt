@@ -1,0 +1,6 @@
+"Act as a Senior Python Staff Engineer. I am a new developer onboarding onto this project. Please reverse-engineer this codebase and provide a comprehensive Technical Onboarding Document. Include:
+1. System Overview: A 2-paragraph summary of what this software does.
+2. Module Map: A breakdown of the folder structure and what each folder does.
+3. Entry Points: Where does the application start? What files should I read first?
+4. Core Dependencies: What are the major libraries used and why?
+5. Mermaid Diagram: A Mermaid.js sequence diagram showing the primary data flow or main execution loop."
