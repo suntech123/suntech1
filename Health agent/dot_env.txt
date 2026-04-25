@@ -1,0 +1,8 @@
+# .env
+UHG_GEMINI_BASE_URL="https://api.uhg.com/api/cloud/api-management/ai-gateway-reasoning/1.0"
+UHG_PROJECT_ID="ff86c05a-125e-4288-8fac-9b47f1f36d7f"
+HCP_CLIENT_ID="your_client_id_here"
+HCP_CLIENT_SECRET="your_client_secret_here"
+HCP_AUTH_URL="https://api.uhg.com/oauth2/token"
+HCP_SCOPE="your_scope_here"
+HCP_GRANT_TYPE="client_credentials"
