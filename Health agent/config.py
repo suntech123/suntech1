@@ -3,27 +3,19 @@ import os
 from dataclasses import dataclass
 
 @dataclass
-class GeminiConfig:
-    """Holds configuration for the UHG Gemini Gateway."""
-    base_url: str = os.getenv("UHG_GEMINI_BASE_URL", "")
-    project_id: str = os.getenv("UHG_PROJECT_ID", "")
-    
-    # Auth config
-    client_id: str = os.getenv("HCP_CLIENT_ID", "")
-    client_secret: str = os.getenv("HCP_CLIENT_SECRET", "")
-    auth_url: str = os.getenv("HCP_AUTH_URL", "")
-    scope: str = os.getenv("HCP_SCOPE", "")
-    grant_type: str = os.getenv("HCP_GRANT_TYPE", "client_credentials")
+class Config:
+    # --- UHG Gemini Settings ---
+    uhg_base_url: str = os.getenv("UHG_GEMINI_BASE_URL", "")
+    uhg_project_id: str = os.getenv("UHG_PROJECT_ID", "")
+    hcp_client_id: str = os.getenv("HCP_CLIENT_ID", "")
+    hcp_client_secret: str = os.getenv("HCP_CLIENT_SECRET", "")
+    hcp_auth_url: str = os.getenv("HCP_AUTH_URL", "")
+    hcp_scope: str = os.getenv("HCP_SCOPE", "")
+    hcp_grant_type: str = os.getenv("HCP_GRANT_TYPE", "client_credentials")
+    gemini_model: str = "gemini-2.5-flash"
 
-    # Available Models
-    MODEL_FLASH: str = "gemini-2.5-flash"
-    MODEL_PRO: str = "gemini-2.5-pro" # Note: Assuming you meant pro here, your image had flash twice
+    # --- OpenAI Settings ---
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
+    openai_model: str = "gpt-4o" # or gpt-3.5-turbo
 
-    def validate(self):
-        """Ensure critical environment variables are loaded."""
-        missing = [k for k, v in self.__dict__.items() if not v and k != "MODEL_FLASH" and k != "MODEL_PRO"]
-        if missing:
-            raise ValueError(f"Missing required environment variables: {', '.join(missing)}")
-
-# Instantiate a global config object to be imported elsewhere
-settings = GeminiConfig()
+settings = Config()
