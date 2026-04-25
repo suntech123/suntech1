@@ -1,3 +1,8 @@
+'''
+We will create a class called UHGChatGemini that inherits from LangChain's BaseChatModel. LangChain only requires you to implement two things: the _llm_type property and the _generate method.
+We will embed the token manager (from the first answer) directly inside this class using Pydantic's PrivateAttr so LangChain can manage it.
+'''
+
 # uhg_gemini.py
 import time
 import requests
