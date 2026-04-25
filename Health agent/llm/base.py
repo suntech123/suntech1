@@ -1,3 +1,7 @@
+'''
+This defines the "contract" that all your LLM wrappers must follow. Your application will only ever interact with these methods, never the raw SDKs directly.
+'''
+
 # llm/base.py
 from abc import ABC, abstractmethod
 
