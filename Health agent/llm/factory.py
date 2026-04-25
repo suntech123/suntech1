@@ -1,3 +1,7 @@
+'''
+This file handles deciding which LLM to load based on a string name.
+'''
+
 # llm/factory.py
 from .base import BaseLLMProvider
 from .gemini import UHGGeminiProvider
