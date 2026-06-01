@@ -1,3 +1,10 @@
+'''
+How to Interpret the Output
+​The difflib Output: This gives you your hard metrics. You can easily modify the script to count the length of the additions and deletions arrays to calculate your Word Error Rate (WER). This is excellent for logging exactly which entities or clauses were injected by the business rules.
+​The util.cos_sim Output: This acts as your safety net. If a human reviewer replaces the word "unexpected" with "unforeseen", difflib will flag a deletion and an addition. However, the SentenceTransformer will recognize the synonyms and still return a similarity score of ~98%, letting you know the edit was merely stylistic and didn't alter the business logic.
+'''
+
+
 import difflib
 from sentence_transformers import SentenceTransformer, util
 
